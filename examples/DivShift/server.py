@@ -1,26 +1,26 @@
 import argparse
 import os
 import socket
+import sys
 from pathlib import Path
 
-from fastapi.responses import PlainTextResponse
 
-from app.web import create_app
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app.web import create_app  # noqa: E402
+from examples.DivShift.routes import register_divshift_routes  # noqa: E402
 
 
-APP_ROOT = Path(__file__).parent
 PORT = int(os.environ.get("PORT", "8420"))
 DEFAULT_RUNTIME = os.environ.get("VIBECLEANING_RUNTIME", "local")
 
 app = create_app(
-    data_root=APP_ROOT / "data",
-    static_root=APP_ROOT / "static",
+    data_root=ROOT / "data",
+    static_root=ROOT / "examples" / "DivShift" / "static",
 )
-
-
-@app.get("/starter-readme")
-async def starter_readme():
-    return PlainTextResponse((APP_ROOT / "README.md").read_text())
+register_divshift_routes(app, data_root=ROOT / "data")
 
 
 def find_free_port() -> int:
@@ -55,11 +55,12 @@ if __name__ == "__main__":
     )
     port = find_free_port() if args.find_free_port else args.port
 
-    print(f"\n  Vibecleaning Starter App ({args.runtime}): http://{host}:{port}\n")
+    print(f"\n  DivShift Bias Dashboard ({args.runtime}): http://{host}:{port}\n")
     if args.runtime == "cluster":
         ssh_user = os.environ.get("USER", "YOUR_USERNAME")
         ssh_host = socket.gethostname()
         print("  Tunnel from your local machine:")
-        print(f"    ssh {ssh_user}@{ssh_host} -L {port}:localhost:{port}")
+        print(f"    ssh -N -L {port}:localhost:{port} {ssh_user}@{ssh_host}")
         print(f"  Then open: http://localhost:{port}\n")
+
     uvicorn.run(app, host=host, port=port, log_level="info")

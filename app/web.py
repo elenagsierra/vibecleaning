@@ -39,9 +39,10 @@ def validate_path_part(raw_value: object, *, label: str) -> str:
 
 def get_project_dir(data_root: Path, project_name: str) -> Path:
     project = validate_path_part(project_name, label="project")
-    path = (data_root / project).resolve()
-    if data_root.resolve() not in path.parents:
+    project_path = data_root / project
+    if project_path.parent.resolve() != data_root.resolve():
         raise ValueError("Invalid project")
+    path = project_path.resolve()
     if not path.exists() or not path.is_dir():
         raise ValueError("Unknown project")
     return path

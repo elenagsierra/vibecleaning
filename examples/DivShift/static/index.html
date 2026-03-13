@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DivShift Bias Dashboard</title>
+<style>
+  :root {
+    --paper: #f4eddc;
+    --ink: #1f2f23;
+    --muted: #5f6d5d;
+    --pine: #345642;
+    --moss: #718f5d;
+    --clay: #b56a43;
+    --gold: #d4a64d;
+    --card: rgba(255, 251, 241, 0.9);
+    --line: rgba(31, 47, 35, 0.14);
+    --shadow: 0 24px 80px rgba(37, 52, 39, 0.15);
+  }
+  * {
+    box-sizing: border-box;
+  }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(212, 166, 77, 0.18), transparent 28%),
+      radial-gradient(circle at 100% 0%, rgba(52, 86, 66, 0.18), transparent 26%),
+      linear-gradient(180deg, #e8e0c9 0%, #efe7d7 44%, #e2dcc6 100%);
+    color: var(--ink);
+    font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+    background-size: 28px 28px;
+    opacity: 0.18;
+  }
+  .shell {
+    position: relative;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 28px 22px 40px;
+  }
+  .hero {
+    display: grid;
+    gap: 18px;
+    padding: 28px;
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,248,232,0.96)),
+      linear-gradient(180deg, rgba(52,86,66,0.08), rgba(181,106,67,0.04));
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .hero-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    gap: 22px;
+    align-items: start;
+  }
+  .kicker {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--pine);
+    margin-bottom: 10px;
+  }
+  .hero h1 {
+    margin: 0 0 14px;
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: clamp(38px, 5vw, 64px);
+    line-height: 0.94;
+    letter-spacing: -0.03em;
+  }
+  .hero p {
+    margin: 0;
+    max-width: 64ch;
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  .hero-notes {
+    display: grid;
+    gap: 10px;
+    align-self: stretch;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(31, 47, 35, 0.08);
+  }
+  .hero-notes strong {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--clay);
+    margin-bottom: 6px;
+  }
+  .hero-notes code {
+    display: inline-block;
+    padding: 5px 8px;
+    border-radius: 8px;
+    background: rgba(31, 47, 35, 0.06);
+    font-size: 12px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+  }
+  .stat {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: var(--card);
+    border: 1px solid rgba(31, 47, 35, 0.1);
+    min-height: 110px;
+    animation: rise 380ms ease both;
+  }
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+  }
+  .stat-value {
+    margin-top: 12px;
+    font-size: clamp(22px, 3vw, 34px);
+    font-weight: 700;
+    color: var(--pine);
+  }
+  .stat-copy {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+    gap: 20px;
+    margin-top: 22px;
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: end;
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,248,238,0.48));
+  }
+  .panel-head h2 {
+    margin: 0 0 6px;
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-size: 28px;
+  }
+  .panel-head p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .atlas {
+    padding: 18px 22px 24px;
+  }
+  .atlas-frame {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 10%, rgba(212,166,77,0.16), transparent 30%),
+      linear-gradient(180deg, #faf5ea 0%, #f4ecde 100%);
+    border: 1px solid rgba(31, 47, 35, 0.08);
+    min-height: 360px;
+  }
+  .atlas-svg {
+    display: block;
+    width: 100%;
+    height: 360px;
+  }
+  .atlas-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 14px 4px 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .legend-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .family-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 18px 22px 0;
+  }
+  .family-tab {
+    appearance: none;
+    border: 1px solid rgba(31, 47, 35, 0.12);
+    background: rgba(255, 252, 245, 0.9);
+    color: var(--ink);
+    padding: 10px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+  }
+  .family-tab:hover {
+    transform: translateY(-1px);
+  }
+  .family-tab.active {
+    background: var(--pine);
+    color: #f8f3e8;
+    border-color: var(--pine);
+  }
+  .bias-grid {
+    display: grid;
+    gap: 14px;
+    padding: 18px 22px 22px;
+  }
+  .group-card {
+    padding: 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(31, 47, 35, 0.09);
+    background: rgba(255, 255, 255, 0.58);
+  }
+  .group-card h3 {
+    margin: 0 0 6px;
+    font-size: 18px;
+  }
+  .group-card p {
+    margin: 0 0 16px;
+    color: var(--muted);
+    line-height: 1.55;
+    font-size: 14px;
+  }
+  .partition-list {
+    display: grid;
+    gap: 10px;
+  }
+  .partition-button {
+    appearance: none;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid rgba(31, 47, 35, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 251, 244, 0.95);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .partition-button:hover {
+    transform: translateX(2px);
+    border-color: rgba(52, 86, 66, 0.28);
+  }
+  .partition-button.active {
+    border-color: rgba(52, 86, 66, 0.42);
+    box-shadow: inset 0 0 0 1px rgba(52, 86, 66, 0.16);
+  }
+  .partition-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 9px;
+  }
+  .partition-name {
+    font-weight: 700;
+    color: var(--pine);
+  }
+  .partition-count {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .bar {
+    height: 9px;
+    border-radius: 999px;
+    background: rgba(31, 47, 35, 0.08);
+    overflow: hidden;
+  }
+  .bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--gold), var(--clay));
+  }
+  .gallery {
+    display: grid;
+    gap: 16px;
+    padding: 0 22px 22px;
+  }
+  .gallery-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: end;
+  }
+  .gallery-head h3 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  }
+  .gallery-head p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .sample-card {
+    display: grid;
+    grid-template-rows: 180px auto;
+    overflow: hidden;
+    border-radius: 20px;
+    border: 1px solid rgba(31, 47, 35, 0.1);
+    background: rgba(255, 255, 255, 0.82);
+    color: inherit;
+    text-decoration: none;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+  .sample-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(52, 86, 66, 0.18);
+  }
+  .sample-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: linear-gradient(135deg, rgba(212,166,77,0.18), rgba(52,86,66,0.12));
+  }
+  .sample-copy {
+    display: grid;
+    gap: 6px;
+    padding: 12px 14px 14px;
+  }
+  .sample-title {
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .sample-meta {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .insight-grid {
+    display: grid;
+    gap: 16px;
+    padding: 18px 22px 22px;
+  }
+  .insight-card {
+    padding: 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(31, 47, 35, 0.1);
+    background: rgba(255, 255, 255, 0.62);
+  }
+  .insight-card h3 {
+    margin: 0 0 14px;
+    font-size: 20px;
+  }
+  .list-bars {
+    display: grid;
+    gap: 10px;
+  }
+  .list-row {
+    display: grid;
+    gap: 6px;
+  }
+  .list-row-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+  }
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .timeline {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+    min-height: 180px;
+    padding-top: 12px;
+  }
+  .timeline-bar {
+    flex: 1;
+    min-width: 20px;
+    display: grid;
+    gap: 8px;
+    align-items: end;
+  }
+  .timeline-column {
+    border-radius: 12px 12px 0 0;
+    background: linear-gradient(180deg, var(--gold), var(--pine));
+    min-height: 4px;
+  }
+  .timeline-label {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .footer-note {
+    padding: 0 22px 22px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .status,
+  .error-card {
+    margin-top: 22px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: rgba(255, 252, 245, 0.86);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    box-shadow: var(--shadow);
+  }
+  .error-card {
+    color: #7b2f23;
+    border-color: rgba(123, 47, 35, 0.18);
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @media (max-width: 1100px) {
+    .hero-top,
+    .layout {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 720px) {
+    .shell {
+      padding: 18px 14px 28px;
+    }
+    .hero,
+    .panel-head,
+    .atlas,
+    .family-tabs,
+    .bias-grid,
+    .gallery,
+    .insight-grid {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .gallery-grid {
+      grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="kicker">DivShift NAWC bias dashboard</div>
+          <h1>Bias is the interface.</h1>
+          <p>
+            This dashboard scans <code>divshift_nawc.csv</code>, maps each row back to its photo inside the nested state folders,
+            and turns the existing partitions into a browsable atlas of spatial, temporal, taxonomic, sociopolitical, and observer-driven bias.
+          </p>
+        </div>
+        <aside class="hero-notes">
+          <div>
+            <strong>Project</strong>
+            <code>data/DivShiftNAWC</code>
+          </div>
+          <div>
+            <strong>App route</strong>
+            <code>python examples/DivShift/server.py</code>
+          </div>
+          <div>
+            <strong>Image link strategy</strong>
+            <span>State folder + first three digits of <code>photo_id</code> + file lookup.</span>
+          </div>
+        </aside>
+      </div>
+      <div id="hero-stats" class="stats"></div>
+    </section>
+    <div id="app"></div>
+  </div>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>
