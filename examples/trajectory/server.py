@@ -16,8 +16,7 @@ HOST = os.environ.get("HOST", "127.0.0.1")
 
 app = create_app(
     data_root=ROOT / "data",
-    static_root=ROOT / "static",
-    plugins_root=ROOT / "examples" / "trajectory" / "plugins",
+    static_root=ROOT / "examples" / "trajectory" / "static",
 )
 register_trajectory_routes(app, data_root=ROOT / "data")
 

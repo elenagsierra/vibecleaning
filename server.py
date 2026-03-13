@@ -11,7 +11,6 @@ HOST = os.environ.get("HOST", "127.0.0.1")
 app = create_app(
     data_root=APP_ROOT / "data",
     static_root=APP_ROOT / "static",
-    plugins_root=APP_ROOT / "plugins",
 )
 if __name__ == "__main__":
     import uvicorn

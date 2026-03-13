@@ -57,15 +57,13 @@ async def parse_json_body(request: Request) -> dict | None:
     return body
 
 
-def create_app(*, data_root: Path, static_root: Path, plugins_root: Path | None = None) -> FastAPI:
+def create_app(*, data_root: Path, static_root: Path) -> FastAPI:
     data_root = data_root.resolve()
     static_root = static_root.resolve()
-    plugins_root = plugins_root.resolve() if plugins_root else None
 
     app = FastAPI()
     app.state.data_root = data_root
     app.state.static_root = static_root
-    app.state.plugins_root = plugins_root
 
     app.add_middleware(
         CORSMiddleware,
@@ -96,9 +94,6 @@ def create_app(*, data_root: Path, static_root: Path, plugins_root: Path | None 
 
     if static_root.exists():
         app.mount("/static", StaticFiles(directory=static_root), name="static")
-
-    if plugins_root and plugins_root.exists():
-        app.mount("/plugins", StaticFiles(directory=plugins_root), name="plugins")
 
     @app.get("/")
     async def index():

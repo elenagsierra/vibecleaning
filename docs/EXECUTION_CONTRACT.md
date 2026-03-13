@@ -8,7 +8,7 @@ The current scaffold supports:
 
 - `python`
 
-The agent or an overlay may call libraries or external tools from Python as needed.
+The agent or an application may call libraries or external tools from Python as needed.
 
 ## Environment Variables
 
@@ -84,9 +84,9 @@ Scripts receive:
 
 ## Overlay Actions
 
-Application overlays may expose named backend actions such as `delete-checked` or `build-summary`.
+Applications may expose named backend actions such as `delete-checked` or `build-summary`.
 
-Those actions should not become core framework concepts. Instead, the overlay should translate the action into a generic execution request:
+Those actions should not become core framework concepts. Instead, the application should translate the action into a generic execution request:
 
 - `analysis` when the work is exploratory or derived-only
 - `step` when the work should create a new dataset node

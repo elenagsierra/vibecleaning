@@ -56,7 +56,7 @@ data/<project>/
 }
 ```
 
-`logical_name` is the dataset-level artifact identifier. It is how steps, analyses, and plugins refer to an artifact inside a dataset bundle.
+`logical_name` is the dataset-level artifact identifier. It is how steps, analyses, and applications refer to an artifact inside a dataset bundle.
 
 ## Step Record
 

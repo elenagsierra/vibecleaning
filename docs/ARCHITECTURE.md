@@ -46,24 +46,24 @@ The core HTTP layer exposes reusable generic routes for:
 - changing the current head
 - undoing to the parent dataset
 
-The core app is created through an app factory so overlays can compose with it without the core importing those overlays.
+The core app is created through an app factory so applications can compose with it without the core importing them.
 
-## 4. Application Overlays
+## 4. Applications
 
-An application overlay is a domain-specific package that imports the core app and adds:
+A self-contained application is a domain-specific package that imports the core app and adds:
 
-- overlay-owned backend routes
-- overlay-owned plugins
-- overlay-owned action handlers
-- overlay-owned summary or preview logic for large artifacts
+- app-owned backend routes
+- app-owned frontend assets
+- app-owned action handlers
+- app-owned summary or preview logic for large artifacts
 
-An overlay may expose named UI actions like `Delete checked`, but those actions should compile down to generic `analysis` or `step` executions.
+An application may expose named UI actions like `Delete checked`, but those actions should compile down to generic `analysis` or `step` executions.
 
 Dependency direction is one-way:
 
-1. core knows nothing about overlays
-2. overlays import the core
-3. plugins talk to either generic core routes or their overlay's routes
+1. core knows nothing about applications
+2. applications import the core
+3. application frontends talk to either generic core routes or their application's routes
 
 ## 5. Agent Contracts
 
@@ -73,5 +73,5 @@ The intended system behavior is:
 
 1. the user interacts with an AI agent
 2. the agent reads the local contracts
-3. the agent generates bespoke scripts, plugins, or overlay code
+3. the agent generates bespoke scripts, frontend code, or application code
 4. the backend persists lineage and execution records
