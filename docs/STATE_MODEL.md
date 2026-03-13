@@ -1,6 +1,6 @@
 # State Model
 
-Each project may contain:
+Project layout:
 
 ```text
 data/<project>/
@@ -22,91 +22,33 @@ data/<project>/
     outputs/<dataset_id>/<artifact files>
 ```
 
-## project.json
+Core objects:
 
-```json
-{
-  "project_name": "example",
-  "root_dataset_id": "dataset_...",
-  "current_dataset_id": "dataset_...",
-  "created_at": "2026-03-12T12:00:00+00:00",
-  "updated_at": "2026-03-12T12:00:00+00:00"
-}
-```
+- `project.json`
+  Tracks `root_dataset_id` and `current_dataset_id`.
+- dataset manifest
+  A dataset is a bundle of artifacts. Each artifact has a `logical_name`, storage path, content type, size, and `metadata`.
+- analysis record
+  Records exploratory execution against a dataset. Does not create a new dataset.
+- step record
+  Records a persistent transform from `parent_dataset_id` to `output_dataset_id`.
 
-## Dataset Manifest
+Valid DAG rules:
 
-```json
-{
-  "dataset_id": "dataset_...",
-  "user": "system",
-  "created_at": "2026-03-12T12:00:00+00:00",
-  "parent_dataset_id": null,
-  "note": "Initial dataset from project inputs",
-  "artifacts": [
-    {
-      "logical_name": "example.bin",
-      "path": "example.bin",
-      "storage_type": "raw",
-      "size": 1234,
-      "content_type": "application/octet-stream",
-      "metadata": {}
-    }
-  ]
-}
-```
+- The initial dataset is built from the top-level non-hidden files in `data/<project>/`.
+- Raw files stay immutable.
+- A step always creates a new dataset manifest.
+- A step must remove at least one artifact or produce at least one output artifact.
+- Unchanged artifacts are reused by reference from the parent dataset.
+- Output artifacts replace artifacts with the same `logical_name`.
+- App-specific fields do not belong in the core schema. Put them in:
+  - `artifact.metadata`
+  - `step.parameters`
+  - `step.summary`
+  - analysis outputs
 
-`logical_name` is the dataset-level artifact identifier. It is how steps, analyses, and applications refer to an artifact inside a dataset bundle.
+Head semantics:
 
-## Step Record
-
-```json
-{
-  "step_id": "step_...",
-  "user": "agent user",
-  "title": "Normalize payload archive",
-  "kind": "python",
-  "created_at": "2026-03-12T12:00:00+00:00",
-  "parent_dataset_id": "dataset_...",
-  "output_dataset_id": "dataset_...",
-  "script_path": ".vibecleaning/steps/step_.../transform.py",
-  "spec_path": ".vibecleaning/steps/step_.../spec.json",
-  "summary_path": ".vibecleaning/steps/step_.../summary.json",
-  "parameters": {},
-  "input_artifacts": ["archive.zip"],
-  "output_artifacts": ["archive_manifest.json"],
-  "removed_artifacts": [],
-  "set_as_head": true,
-  "summary": {}
-}
-```
-
-## Analysis Record
-
-```json
-{
-  "analysis_id": "analysis_...",
-  "dataset_id": "dataset_...",
-  "user": "agent user",
-  "title": "Inspect archive manifest",
-  "kind": "python",
-  "created_at": "2026-03-12T12:00:00+00:00",
-  "script_path": ".vibecleaning/analyses/analysis_.../analysis.py",
-  "spec_path": ".vibecleaning/analyses/analysis_.../spec.json",
-  "summary_path": ".vibecleaning/analyses/analysis_.../summary.json",
-  "parameters": {},
-  "input_artifacts": ["archive.zip"],
-  "output_artifacts": ["archive_summary.json"]
-}
-```
-
-## Application-Specific Semantics
-
-The state model is generic. Application-specific meaning should live in one of these places:
-
-- `artifact.metadata`
-- `step.parameters`
-- `step.summary`
-- analysis outputs
-
-Do not add app-specific fields to the core state model unless they are broadly generic.
+- `current_dataset_id` is only the active head pointer.
+- Older datasets remain in the DAG.
+- `undo` moves the head to the parent dataset. It does not delete descendants.

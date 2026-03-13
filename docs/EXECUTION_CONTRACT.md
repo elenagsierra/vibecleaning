@@ -1,94 +1,70 @@
 # Execution Contract
 
-The execution harness is generic and intentionally small.
-
-## Supported Script Kind
-
-The current scaffold supports:
+Supported script kind:
 
 - `python`
 
-The agent or an application may call libraries or external tools from Python as needed.
+Generic create-analysis request:
 
-## Environment Variables
+```json
+{
+  "user": "agent user",
+  "title": "Inspect artifact",
+  "kind": "python",
+  "script": "...python...",
+  "dataset_id": "dataset_...",
+  "parameters": {},
+  "input_artifacts": ["input.csv"],
+  "output_artifacts": ["summary.json"]
+}
+```
 
-Scripts receive:
+Generic create-step request:
+
+```json
+{
+  "user": "agent user",
+  "title": "Transform artifact",
+  "kind": "python",
+  "script": "...python...",
+  "parent_dataset_id": "dataset_...",
+  "parameters": {},
+  "input_artifacts": ["input.csv"],
+  "output_artifacts": ["cleaned.csv"],
+  "remove_artifacts": [],
+  "set_as_head": true
+}
+```
+
+Request rules:
+
+- `dataset_id` and `parent_dataset_id` default to the current head if omitted.
+- `input_artifacts: []` means all artifacts in the source dataset.
+- A step must have at least one `output_artifact` or `remove_artifact`.
+- `output_artifacts` and `remove_artifacts` must not overlap.
+- `user`, `title`, `kind`, and `script` are required.
+
+Script environment:
 
 - `VIBECLEANING_SPEC_PATH`
 - `VIBECLEANING_SUMMARY_PATH`
 
-## Step Spec Shape
+Script responsibilities:
 
-```json
-{
-  "mode": "step",
-  "project_name": "example",
-  "project_dir": "/abs/path/to/data/example",
-  "parent_dataset": {...},
-  "input_artifacts": [
-    {
-      "logical_name": "raw.bin",
-      "path": "/abs/path/to/data/example/raw.bin",
-      "content_type": "application/octet-stream",
-      "metadata": {}
-    }
-  ],
-  "output_artifacts": [
-    {
-      "logical_name": "derived.json",
-      "path": "/abs/path/to/data/example/.vibecleaning/outputs/dataset_x/derived.json"
-    }
-  ],
-  "step": {
-    "step_id": "step_...",
-    "title": "Derive JSON summary",
-    "user": "agent user",
-    "parameters": {},
-    "remove_artifacts": []
-  }
-}
-```
+- Read the spec JSON from `VIBECLEANING_SPEC_PATH`.
+- Write declared outputs to the declared paths.
+- Write a machine-readable summary to `VIBECLEANING_SUMMARY_PATH`.
+- Exit non-zero on failure.
 
-## Analysis Spec Shape
+Framework responsibilities:
 
-```json
-{
-  "mode": "analysis",
-  "project_name": "example",
-  "project_dir": "/abs/path/to/data/example",
-  "dataset": {...},
-  "input_artifacts": [...],
-  "output_artifacts": [...],
-  "analysis": {
-    "analysis_id": "analysis_...",
-    "title": "Inspect raw payload",
-    "user": "agent user",
-    "parameters": {}
-  }
-}
-```
+- Persist script, spec, and summary files.
+- Verify declared outputs exist before using them in a new dataset.
+- Reuse unchanged parent artifacts by reference.
+- Never mutate raw inputs.
 
-## Script Responsibilities
+Head actions:
 
-- read the spec from `VIBECLEANING_SPEC_PATH`
-- write any declared output artifacts to the declared paths
-- write a machine-readable summary to `VIBECLEANING_SUMMARY_PATH`
-- fail with a non-zero exit code when the requested work cannot be completed safely
-
-## Framework Responsibilities
-
-- persist script, spec, and summary files
-- verify output artifacts exist before adding them to the resulting dataset
-- reuse unchanged parent artifacts by reference
-- never mutate raw inputs
-
-## Overlay Actions
-
-Applications may expose named backend actions such as `delete-checked` or `build-summary`.
-
-Those actions should not become core framework concepts. Instead, the application should translate the action into a generic execution request:
-
-- `analysis` when the work is exploratory or derived-only
-- `step` when the work should create a new dataset node
-
-The persisted script, spec, summary, and outputs remain the source of truth for reproducibility.
+- `POST /api/project/{project}/head` moves `current_dataset_id` to a chosen dataset.
+- `POST /api/project/{project}/undo` moves `current_dataset_id` to the current head's parent.
+- Neither action deletes datasets.
